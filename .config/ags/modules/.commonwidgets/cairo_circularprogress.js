@@ -12,12 +12,22 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js'
 // color for progress color
 // -- Usage --
 // font size for progress value (0-100px) (hacky i know, but i want animations)
+// Added color interpolation function
+const interpolateColor = (color1, color2, factor) => ({
+    red: color1.red + (color2.red - color1.red) * factor,
+    green: color1.green + (color2.green - color1.green) * factor,
+    blue: color1.blue + (color2.blue - color1.blue) * factor,
+    alpha: color1.alpha + (color2.alpha - color1.alpha) * factor,
+});
+
 export const AnimatedCircProg = ({
     initFrom = 0,
     initTo = 0,
     initAnimTime = 2900,
     initAnimPoints = 1,
-    extraSetup = () => {  },
+    startColor = { red: 0.2, green: 0.8, blue: 0.2, alpha: 1.0 }, // Start color (blue)
+    endColor = { red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0 },   // End color (red)
+    extraSetup = () => { },
     ...rest
 }) => Widget.DrawingArea({
     ...rest,
@@ -66,14 +76,16 @@ export const AnimatedCircProg = ({
 
             if (progressValue == 0) return;
 
-            // Draw progress
-            const color = styleContext.get_property('color', Gtk.StateFlags.NORMAL);
-            cr.setSourceRGBA(color.red, color.green, color.blue, color.alpha);
+            // Calculate interpolated color based on progress
+            const currentColor = interpolateColor(startColor, endColor, progressValue);
+            
+            // Draw progress with interpolated color
+            cr.setSourceRGBA(currentColor.red, currentColor.green, currentColor.blue, currentColor.alpha);
             cr.arc(center_x, center_y, radius, start_angle, end_angle);
             cr.setLineWidth(fg_stroke);
             cr.stroke();
 
-            // Draw rounded ends for progress arcs
+            // Draw rounded ends with interpolated color
             cr.setLineWidth(0);
             cr.arc(start_x, start_y, fg_stroke / 2, 0, 0 - 0.01);
             cr.fill();
