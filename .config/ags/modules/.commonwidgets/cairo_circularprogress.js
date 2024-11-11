@@ -9,10 +9,15 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js'
 // padding for space between trough and progress
 // margin for space between widget and parent
 // background-color for trough color
-// color for progress color
+// color for progress color (used when no gradient colors provided)
 // -- Usage --
-// font size for progress value (0-100px) (hacky i know, but i want animations)
-// Added color interpolation function
+// font size for progress value (0-100px)
+// -- Optional Gradient --
+// startColor and endColor props for color interpolation
+// format: { red: 0-1, green: 0-1, blue: 0-1, alpha: 0-1 }
+// if only startColor is provided, falls back to style context color
+
+// Color interpolation function
 const interpolateColor = (color1, color2, factor) => ({
     red: color1.red + (color2.red - color1.red) * factor,
     green: color1.green + (color2.green - color1.green) * factor,
@@ -25,8 +30,8 @@ export const AnimatedCircProg = ({
     initTo = 0,
     initAnimTime = 2900,
     initAnimPoints = 1,
-    startColor = { red: 0.2, green: 0.8, blue: 0.2, alpha: 1.0 }, // Start color (blue)
-    endColor = { red: 0.8, green: 0.2, blue: 0.2, alpha: 1.0 },   // End color (red)
+    startColor = null,      // Optional start color for gradient
+    endColor = null,        // Optional end color for gradient
     extraSetup = () => { },
     ...rest
 }) => Widget.DrawingArea({
@@ -76,16 +81,23 @@ export const AnimatedCircProg = ({
 
             if (progressValue == 0) return;
 
-            // Calculate interpolated color based on progress
-            const currentColor = interpolateColor(startColor, endColor, progressValue);
+            // Determine the color to use for progress
+            let progressColor;
+            if (startColor && endColor) {
+                // Use gradient if both colors are provided
+                progressColor = interpolateColor(startColor, endColor, progressValue);
+            } else {
+                // Fall back to single color from style context
+                progressColor = styleContext.get_property('color', Gtk.StateFlags.NORMAL);
+            }
             
-            // Draw progress with interpolated color
-            cr.setSourceRGBA(currentColor.red, currentColor.green, currentColor.blue, currentColor.alpha);
+            // Draw progress with determined color
+            cr.setSourceRGBA(progressColor.red, progressColor.green, progressColor.blue, progressColor.alpha);
             cr.arc(center_x, center_y, radius, start_angle, end_angle);
             cr.setLineWidth(fg_stroke);
             cr.stroke();
 
-            // Draw rounded ends with interpolated color
+            // Draw rounded ends with same color
             cr.setLineWidth(0);
             cr.arc(start_x, start_y, fg_stroke / 2, 0, 0 - 0.01);
             cr.fill();
